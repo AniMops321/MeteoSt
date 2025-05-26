@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Метеостанция</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h1>Метеостанция</h1>
+  <div class="nav">
+    <a href="/archive" class="button">Перейти в архив</a>
+  </div>
+
+  <div class="data" id="weather">Загрузка...</div>
+  <canvas id="chart" width="600" height="300"></canvas>
+
+  <script>
+    let chart;
+
+    async function fetchData() {
+      const res = await fetch("/data");
+      const data = await res.json();
+      const el = document.getElementById("weather");
+
+      if (data.error) {
+        el.textContent = "Нет данных";
+      } else {
+        el.innerHTML = `
+          🌡 Температура: ${data.temperature} °C<br>
+          💧 Влажность: ${data.humidity} %<br>
+          🧭 Давление: ${data.pressure} гПа<br>
+          ☀️ Освещённость: ${data.lux} lx<br>
+          ⏱ Время: ${new Date(data.timestamp).toLocaleTimeString()}
+        `;
+      }
+    }
+
+    async function drawChart() {
+      const res = await fetch("/log");
+      const log = await res.json();
+
+      const labels = log.map(e => new Date(e.timestamp).toLocaleTimeString());
+      const temp = log.map(e => e.temperature);
+      const hum = log.map(e => e.humidity);
+      const lux = log.map(e => e.lux);
+
+      const ctx = document.getElementById("chart").getContext("2d");
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Температура (°C)', data: temp, borderColor: 'red', fill: false },
+            { label: 'Влажность (%)', data: hum, borderColor: 'blue', fill: false },
+            { label: 'Освещённость (lx)', data: lux, borderColor: 'goldenrod', fill: false }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    setInterval(() => {
+      fetchData();
+      drawChart();
+    }, 5000);
+
+    fetchData();
+    drawChart();
+  </script>
+</body>
+</html>
