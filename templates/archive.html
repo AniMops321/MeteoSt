@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Архив — Метеостанция</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h1>Архив погодных данных</h1>
+
+  <div class="data">
+    <label>Начальная дата: <input type="date" id="start"></label>
+    <label>Конечная дата: <input type="date" id="end"></label>
+    <button onclick="drawWeeklyChart()">Показать</button>
+  </div>
+
+  <canvas id="weeklyChart" width="600" height="300"></canvas>
+
+  <script>
+    let chart;
+
+    async function drawWeeklyChart() {
+      const start = document.getElementById("start").value;
+      const end = document.getElementById("end").value;
+
+      let url = "/weekly";
+      const params = [];
+      if (start) params.push(`start=${start}`);
+      if (end) params.push(`end=${end}`);
+      if (params.length) url += `?${params.join("&")}`;
+
+      const res = await fetch(url);
+      const data = await res.json();
+
+      const labels = data.map(e => e.date);
+      const temp = data.map(e => e.avg_temperature);
+      const hum = data.map(e => e.avg_humidity);
+      const lux = data.map(e => e.avg_lux);
+
+      const ctx = document.getElementById("weeklyChart").getContext("2d");
+      if (chart) chart.destroy();
+
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: "Температура (°C)", data: temp, borderColor: "red", fill: false },
+            { label: "Влажность (%)", data: hum, borderColor: "blue", fill: false },
+            { label: "Освещённость (lx)", data: lux, borderColor: "orange", fill: false }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    drawWeeklyChart();
+  </script>
+</body>
+</html>
